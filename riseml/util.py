@@ -240,14 +240,14 @@ def tensorboard_job_url(job):
 
 def get_state_symbol(state):
     assert state in ('CREATED', 'PENDING', 'BUILDING', 'STARTING',
-              'RUNNING', 'FAILED', 'FINISHED', 'KILLED'), 'Unknown state %s' % state
+              'RUNNING', 'SERVING', 'FAILED', 'FINISHED', 'KILLED'), 'Unknown state %s' % state
     if state in ('CREATED'):
         return u'\u25cb '
     elif state in ('PENDING', 'BUILDING'):
         return color_string(u'\u25cf ', color='yellow')
     elif state in ('STARTING'):
         return color_string(u'\u25cf ', color='yellow')
-    elif state in ('RUNNING'):
+    elif state in ('RUNNING', 'SERVING'):
         return color_string(u'\u25cf ', color='green')
     elif state in ('FINISHED'):
         return color_string(u'\u2713 ', color='green')
