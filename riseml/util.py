@@ -18,6 +18,7 @@ from riseml.ansi import bold, color_string, strip_color
 USER_ONLY_REGEX = re.compile(r'^\.[^\.]+$')
 EXPERIMENT_ID_REGEX = re.compile(r'^(\.[^\.]+\.)?\d+(\.\d+)?$')
 JOB_ID_REGEX = re.compile(r'^(\.[^\.]+\.)?\d+(\.\d+)?\.[A-Za-z]+(\.\d+)?$')
+SHORT_ID_REGEX = re.compile(r'^(?:\.([^\.]+)\.)?(\d+(?:\.\d+)?)(?:\.([A-Za-z]+(?:\.\d+)?))?$')
 
 
 class JobState(object):
@@ -219,6 +220,10 @@ def is_experiment_id(id):
 
 def is_user_id(id):
     return USER_ONLY_REGEX.match(id) is not None
+
+
+def get_experiment_id(short_id):
+    return SHORT_ID_REGEX.match(short_id).groups(None)[1]
 
 
 def has_tensorboard(experiment):

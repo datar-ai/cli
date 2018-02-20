@@ -1,6 +1,6 @@
 from riseml.client import DefaultApi, ApiClient
 
-from riseml.util import call_api, is_job_id, is_experiment_id
+from riseml.util import call_api, is_job_id, is_experiment_id, get_experiment_id
 from riseml.errors import handle_error
 from riseml.stream import stream_experiment_log, stream_job_log
 
@@ -17,13 +17,14 @@ def run(args):
 
     if args.id:
         if is_experiment_id(args.id):
-            experiment = call_api(lambda: client.get_experiment(args.id),
-                                  not_found=lambda: handle_error("Could not find experiment!"))
-            stream_experiment_log(experiment)
+            stream_experiment(client, args.id)
         elif is_job_id(args.id):
             job = call_api(lambda: client.get_job(args.id),
                            not_found=lambda: handle_error("Could not find job!"))
-            stream_job_log(job)
+            if job.role in ['tf-hrvd-master', 'tf-hrvd-worker']:
+                stream_experiment(client, get_experiment_id(args.id), filter_job=job)
+            else:
+                stream_job_log(job)
         else:
             handle_error("Can only show logs for jobs or experiments!")
 
@@ -33,3 +34,8 @@ def run(args):
             handle_error('No experiment logs to show!')
         experiment = call_api(lambda: client.get_experiment(experiments[0].short_id))
         stream_experiment_log(experiment)
+
+def stream_experiment(client, experiment_id, filter_job=None):
+    experiment = call_api(lambda: client.get_experiment(experiment_id),
+                          not_found=lambda: handle_error("Could not find experiment!"))
+    stream_experiment_log(experiment, filter_job=filter_job)
