@@ -27,6 +27,7 @@ monitor_stream = None
 
 
 SORTED_STATES = { JobState.running:  0,
+                  JobState.serving:  0,
                   JobState.building: 1,
                   JobState.starting: 1,
                   JobState.pending:  1,
@@ -203,7 +204,7 @@ def get_summary_infos(project_name, jobs_stats):
     output = StringIO()
     for job_stats in jobs_stats:
         job = job_stats.job
-        if job.state in (JobState.running):
+        if job.state in (JobState.running, JobState.serving):
             rows.append([job.short_id, project_name,
                          '%s%s' % (get_state_symbol(job.state), job.state),
                          format_cpu(job_stats),
@@ -307,7 +308,7 @@ def get_detailed_info(job_stats):
                                        '%s%s' % (get_state_symbol(job.state), job.state)))
     if job.gpus == 0:
         return '\n'.join([caption, indent('Experiment uses no GPUs')])
-    if job.state in ('RUNNING'):
+    if job.state in ('RUNNING', 'SERVING'):
         #total_gib = job_stats.get('memory_limit', '%.1f', bytes_to_gib)
         #used_gib = job_stats.get('memory_used', '%.1f', bytes_to_gib)
         #memory = 'Memory Stats (Used/Total) GB: %s / %s' % (used_gib, total_gib)
@@ -426,12 +427,12 @@ def stream_stats(url, job_id_stats, stream_meta={}):
         handle_error('Unable to connect to monitor stream')
 
 
-def get_experiment_jobs(experiment, roles=('train', 'dist-tf-master',
-                                           'dist-tf-ps', 'dist-tf-worker')):
-   jobs = [j for j in experiment.jobs if j.role in roles]
-   for c in experiment.children:
-       jobs += get_experiment_jobs(c)
-   return jobs
+def get_experiment_jobs(experiment):
+    filtered_roles = ('build', 'tensorboard')
+    jobs = [j for j in experiment.jobs if j.role not in filtered_roles]
+    for c in experiment.children:
+        jobs += get_experiment_jobs(c)
+    return jobs
 
 
 def monitor_job(job, detailed=False):
