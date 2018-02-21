@@ -1,7 +1,5 @@
-# v1.0.3 (2018/02/21)
-- Use latest `riseml.yml` syntax
-- Improve log output for Horovod experiments
-- Fix crash for jobs in SERVING state
+# v1.1.0 (2018/02/21)
+- Add support for Horovod
 
 # v1.0.2 (2018/02/01)
 Fixes output of Unicode characters in non-utf-8 locales.
