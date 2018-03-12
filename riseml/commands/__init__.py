@@ -1,3 +1,4 @@
+from .data import add_ls_parser, add_cp_parser, add_rm_parser
 from .deploy import add_deploy_parser
 from .execute import add_exec_parser
 from .logs import add_logs_parser

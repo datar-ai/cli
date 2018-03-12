@@ -62,26 +62,17 @@ def add_list_parser(subparsers):
 def add_login_parser(subparsers):
     parser = subparsers.add_parser('login', help="login new user")
     parser.add_argument('--api-host', help="Hostname/IP and port of RiseML API server")
-    parser.add_argument('--sync-host', help="Hostname/IP and port of RiseML sync server")
     parser.add_argument('--api-key', help="RiseML API key")
-    parser.add_argument('--host', help="Use this hostname for API/sync server with default ports 31213/31876")
     parser.set_defaults(run=run_login)
 
 
 def run_login(args):
     print('Configuring new user login. This will overwrite your existing configuration. \n')
     try:
-        if args.host:
-            args.api_host = args.host + ':31213'
-            args.sync_host = args.host + ':31876'
-
-        api_key, api_host, cluster_id = login_api(args)
+        api_key, host, cluster_config = login_api(args)
         print()
 
-        rsync_host = login_rsync(args)
-        print()
-
-        write_config(api_key, api_host, rsync_host, cluster_id)
+        write_config(api_key, host, cluster_config)
         print('Login succeeded, config updated.')
     except (KeyboardInterrupt, EOFError) as e:
         print('Aborting login. Configuration unchanged.')
@@ -120,33 +111,14 @@ def login_api(args):
             print('You need to enter a value!')
         print()
 
-    cluster_id = check_api_config(get_api_url(api_host), api_key)
-    return api_key, api_host, cluster_id
-
-
-def login_rsync(args):
-    rsync_host = args.sync_host
-    if not args.sync_host:
-        current_sync_url = get_sync_url()
-        default = re.match(r'^rsync://(.*)/sync$', current_sync_url).group(1) if current_sync_url else ''
-        print('Please provide the DNS name or IP of your RiseML sync server.')
-        if default:
-            print('Default: {}'.format(default))
-        else:
-            print('Example: 54.131.125.42:31876')
-        while True:
-            rsync_host = input('--> ').strip() or default
-            if rsync_host:
-                break
-            print('You need to enter a value!')
-        print()
-
-    check_sync_config('rsync://%s/sync' % rsync_host)
-    return rsync_host
+    host = api_host.split(':')[0]
+    cluster_config = check_api_config(get_api_url(api_host), api_key)
+    check_sync_config('rsync://%s:%s/sync' % (host, cluster_config.ports.sync))
+    return api_key, host, cluster_config
 
 
 def check_sync_config(rsync_url, timeout=20):
-    print('Waiting %ss for connection to sync server %s ...' % (timeout, rsync_url))
+    print('Checking connection to sync server %s for at most %ss... ' % (rsync_url, timeout), end='', flush=True)
 
     start = time.time()
     while True:
@@ -172,7 +144,7 @@ def check_sync_config(rsync_url, timeout=20):
 
 
 def check_api_config(api_url, api_key, timeout=180):
-    print('Waiting %ss for successful login to %s with API key \'%s\' ...' % (timeout, api_url, api_key))
+    print('Trying to login to %s with API key \'%s\' for at most %ss... ' % (api_url, api_key, timeout), end='', flush=True)
     config = Configuration()
     old_api_host = config.host
     old_api_key = config.api_key['api_key']
@@ -183,12 +155,11 @@ def check_api_config(api_url, api_key, timeout=180):
     start = time.time()
     while True:
         try:
-            cluster_infos = client.get_cluster_infos()
-            cluster_id = get_cluster_id(cluster_infos)
-            print('Success! Cluster ID: %s' % cluster_id)
+            cluster_config = client.login_user()
+            print('Success! Cluster ID: %s' % cluster_config.cluster_id)
             config.api_key['api_key'] = old_api_key
             config.host = old_api_host
-            return cluster_id
+            return cluster_config
         except ApiException as exc:
             if exc.reason == 'UNAUTHORIZED':
                 print(exc.status, 'Unauthorized - wrong api key?')
@@ -204,16 +175,10 @@ def check_api_config(api_url, api_key, timeout=180):
                 time.sleep(1)
                 continue
             else:
-                print('Unable to connecto to %s ' % api_url)
+                print('Unable to connect to %s ' % api_url)
                 # all uncaught http errors goes here
                 print(e.reason)
                 sys.exit(1)
-
-
-def get_cluster_id(cluster_infos):
-    for ci in cluster_infos:
-        if ci.key == 'cluster_id':
-            return ci.value
 
 
 def run_create(args):

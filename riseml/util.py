@@ -5,6 +5,7 @@ import sys
 import time
 import re
 import platform
+import errno
 import webbrowser
 from urllib3.exceptions import LocationValueError, HTTPError
 from datetime import datetime
@@ -279,3 +280,12 @@ def read_yes_no(question):
         return True
     else:
         return False
+
+def mkdir_p(path):
+    try:
+        os.makedirs(path)
+    except OSError as exc:
+        if exc.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise

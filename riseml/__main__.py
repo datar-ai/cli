@@ -30,6 +30,11 @@ def main():
     add_system_parser(subparsers)
     add_account_parser(subparsers)
 
+    # data ops
+    add_ls_parser(subparsers)
+    add_cp_parser(subparsers)
+    add_rm_parser(subparsers)
+
     # worklow ops
     add_init_parser(subparsers)
     add_train_parser(subparsers)
