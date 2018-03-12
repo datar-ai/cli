@@ -22,3 +22,5 @@ from .job import Job
 from .node import Node
 from .project import Project
 from .user import User
+from .user_login_response import UserLoginResponse
+from .user_login_response_ports import UserLoginResponsePorts

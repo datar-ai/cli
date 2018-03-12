@@ -22,6 +22,8 @@ from .models.job import Job
 from .models.node import Node
 from .models.project import Project
 from .models.user import User
+from .models.user_login_response import UserLoginResponse
+from .models.user_login_response_ports import UserLoginResponsePorts
 
 # import apis into sdk package
 from .apis.admin_api import AdminApi

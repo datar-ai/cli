@@ -105,8 +105,18 @@ def validate_user_config(user_config):
 
 
 def validate_cluster_config(cluster_config):
-    assert_exists('api-server', cluster_config)
-    assert_exists('sync-server', cluster_config)
+    if 'host' in cluster_config:
+        assert_exists('host', cluster_config)
+        assert_exists('ports', cluster_config)
+        assert_exists('web', cluster_config['ports'])
+        assert_exists('sync', cluster_config['ports'])
+        assert_exists('minio-data', cluster_config['ports'])
+        assert_exists('minio-output', cluster_config['ports'])
+        assert_exists('minio-access-key', cluster_config)
+        assert_exists('minio-secret-key', cluster_config)
+    else:
+        assert_exists('api-server', cluster_config)
+        assert_exists('sync-server', cluster_config)
     assert_exists('cluster-id', cluster_config)
 
 
@@ -115,7 +125,7 @@ def get_client_config():
     return get_current_context(config)
 
 
-def generate_config(api_key, api_host, rsync_host, cluster_id, environment):
+def generate_config(api_key, host, cluster_config):
     config = """
 current-context: default
 
@@ -129,52 +139,111 @@ contexts:
 clusters:
   - name: default
     cluster:
-      api-server: http://{api_host}
-      sync-server: rsync://{rsync_host}/sync
       cluster-id: {cluster_id}
+      host: {host}
+      ports:
+        web: {web_port}
+        sync: {sync_port}
+        minio-data: {minio_data_port}
+        minio-output: {minio_output_port}
+      minio-access-key: {minio_access_key}
+      minio-secret-key: {minio_secret_key}
 
 users:
 - name: default
   user:
     api-key: {api_key}
-""".format(api_host=api_host,
+""".format(cluster_id=cluster_config.cluster_id,
+           host=host,
+           web_port=cluster_config.ports.web,
+           sync_port=cluster_config.ports.sync,
+           minio_data_port=cluster_config.ports.minio_data,
+           minio_output_port=cluster_config.ports.minio_output,
+           minio_access_key=cluster_config.minio_access_key,
+           minio_secret_key=cluster_config.minio_secret_key,
            api_key=api_key,
-           rsync_host=rsync_host,
-           cluster_id=cluster_id,
-           environment=environment)
+           environment=cluster_config.environment)
     return config
 
 
-def write_config(api_key, api_host, rsync_host, cluster_id,
-                 environment='production'):
+def write_config(api_key, host, cluster_config):
     try:
         os.makedirs(os.path.dirname(get_config_file()))
     except OSError as exc:
         if exc.errno != errno.EEXIST:
             raise
-    config = generate_config(api_key, api_host, rsync_host,
-                             cluster_id, environment)
+    config = generate_config(api_key, host, cluster_config)
     with open(get_config_file(), 'wt') as f:
         f.write(config)
 
 
+def get_cluster_host():
+    return get_client_config()['cluster']['host']
+
+
 def get_api_server():
-    return get_client_config()['cluster']['api-server']
+    web_port = get_client_config()['cluster'].get('ports', {}).get('web', None)
+    if web_port:
+        return 'http://' + get_cluster_host() + ':' + str(web_port)
+    else:
+        # Use old config format
+        return get_client_config()['cluster']['api-server']
 
 
 def get_sync_url():
-    return get_client_config()['cluster']['sync-server']
+    sync_port = get_client_config()['cluster'].get('ports', {}).get('sync', None)
+    if sync_port:
+        return 'rsync://' + get_cluster_host() + ':' + str(sync_port) + '/sync'
+    else:
+        # Use old config format
+        return get_client_config()['cluster']['sync-server']
 
 
 def get_api_url(api_server=None):
     if not api_server:
-        return get_client_config()['cluster']['api-server'] + '/api'
+        return get_api_server() + '/api'
     else:
         return api_server + '/api'
 
 
 def get_git_url():
-    return get_client_config()['cluster']['api-server'] + '/git'
+    return get_api_server() + '/git'
+
+
+def handle_old_config_error():
+    handle_error('This new feature requires you to re-login to your cluster first.')
+
+
+def get_minio_data_host():
+    minio_port = get_client_config()['cluster'].get('ports', {}).get('minio-data', None)
+    if minio_port:
+        return get_cluster_host() + ':' + str(minio_port)
+    else:
+        handle_old_config_error()
+
+
+def get_minio_output_host():
+    minio_port = get_client_config()['cluster'].get('ports', {}).get('minio-output', None)
+    if minio_port:
+        return get_cluster_host() + ':' + str(minio_port)
+    else:
+        handle_old_config_error()
+
+
+def get_minio_access_key():
+    minio_access_key = get_client_config()['cluster'].get('minio-access-key', None)
+    if minio_access_key:
+        return minio_access_key
+    else:
+        handle_old_config_error()
+
+
+def get_minio_secret_key():
+    minio_secret_key = get_client_config()['cluster'].get('minio-secret-key', None)
+    if minio_secret_key:
+        return minio_secret_key
+    else:
+        handle_old_config_error()
 
 
 def get_api_key():
@@ -182,7 +251,7 @@ def get_api_key():
 
 
 def get_stream_url():
-    api_server = get_client_config()['cluster']['api-server']
+    api_server = get_api_server()
     return "ws://%s/stream" % urlparse(api_server).netloc
 
 
