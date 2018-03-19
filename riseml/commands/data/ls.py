@@ -1,4 +1,4 @@
-from .util import get_minio_client, parse_uri, with_trailing_slash, get_file_name
+from . import util
 
 def add_ls_parser(subparsers):
     parser = subparsers.add_parser('ls', help="list files in data or output storage")
@@ -11,36 +11,33 @@ def run_ls(args):
         print_dir_entry_row(None, 'STORAGE', "data://")
         print_dir_entry_row(None, 'STORAGE', "output://")
     else:
-        storage, bucket, path = parse_uri(args.uri)
-        minio_client = get_minio_client(storage)
+        storage, bucket, path = util.parse_uri(util.expand_uri(args.uri))
         if not bucket:
-            buckets = minio_client.list_buckets()
+            buckets = util.get_buckets(storage)
             for bucket in buckets:
                 print_dir_entry_row(bucket.creation_date, 'DIR', bucket.name + '/')
         elif not path:
-            buckets = [bucket for bucket in minio_client.list_buckets()]
-            exact_bucket_match = next((bc for bc in buckets if bc.name == bucket), None)
-            if exact_bucket_match:
-                list_bucket_objects(minio_client, bucket, '')
-            else:
-                for bc in buckets:
-                    if bc.name.startswith(bucket):
-                        print_dir_entry_row(bc.creation_date, 'DIR', bc.name + '/')
+            list_dir_objects(storage, bucket)
         else:
-            list_bucket_objects(minio_client, bucket, path)
+            exact_match = util.get_exact_object(storage, bucket, path)
+            if exact_match.is_dir:
+                list_dir_objects(storage, bucket, exact_match.object_name)
+            else:
+                print_dir_entry(exact_match)
+
+
+def list_dir_objects(storage, bucket, path=None):
+    objects = util.get_dir_objects(storage, bucket, path)
+    objects = [obj for obj in objects]
+    objects.sort(key=lambda obj: not obj.is_dir)
+    for obj in objects:
+        print_dir_entry(obj)
+
+def print_dir_entry(obj):
+    print_dir_entry_row(obj.last_modified, obj.size or 'DIR', util.get_file_name(obj.object_name))
 
 def print_dir_entry_row(datetime, size_or_type, name):
     print('{:20} {:>14} {}'.format(
         datetime.strftime("%Y-%m-%d %H:%M:%S") if datetime else '',
         size_or_type,
         name))
-
-def list_bucket_objects(minio_client, bucket, path):
-    objects = [obj for obj in minio_client.list_objects_v2(bucket, path)]
-    exact_dir_match = next((obj for obj in objects if obj.object_name == with_trailing_slash(path)), None)
-    if exact_dir_match:
-        objects = [obj for obj in minio_client.list_objects_v2(bucket, exact_dir_match.object_name)]
-    objects.sort(key=lambda obj: not obj.object_name.endswith('/'))
-    for obj in objects:
-        print(obj)
-        print_dir_entry_row(obj.last_modified, obj.size or 'DIR', get_file_name(obj.object_name))

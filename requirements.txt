@@ -10,6 +10,6 @@ jsonschema
 websocket-client
 rollbar
 stringcase
-minio
+-e git+https://github.com/riseml/minio-py.git@add_progress_and_data_streaming_to_uploads#egg=minio
 tqdm
 pytest-mock

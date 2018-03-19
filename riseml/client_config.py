@@ -152,6 +152,7 @@ clusters:
 users:
 - name: default
   user:
+    name: {user_name}
     api-key: {api_key}
 """.format(cluster_id=cluster_config.cluster_id,
            host=host,
@@ -161,6 +162,7 @@ users:
            minio_output_port=cluster_config.ports.minio_output,
            minio_access_key=cluster_config.minio_access_key,
            minio_secret_key=cluster_config.minio_secret_key,
+           user_name=cluster_config.user,
            api_key=api_key,
            environment=cluster_config.environment)
     return config
@@ -176,6 +178,9 @@ def write_config(api_key, host, cluster_config):
     with open(get_config_file(), 'wt') as f:
         f.write(config)
 
+
+def get_user():
+    return get_client_config()['user']['name']
 
 def get_cluster_host():
     return get_client_config()['cluster']['host']

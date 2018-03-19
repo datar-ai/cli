@@ -8,8 +8,12 @@ from config_parser import RepositoryConfig, ConfigError
 from riseml.errors import handle_error
 
 
+def config_exists(config_file):
+    return os.path.exists(config_file)
+
+
 def load_config(config_file, config_section=None):
-    if not os.path.exists(config_file):
+    if not config_exists(config_file):
         handle_error("%s does not exist" % config_file)
 
     try:

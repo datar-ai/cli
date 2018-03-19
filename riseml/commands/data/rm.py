@@ -1,7 +1,4 @@
-from minio.error import NoSuchBucket
-
-from ...errors import handle_error
-from .util import get_minio_client, parse_uri, build_uri, handle_path_does_not_exists, handle_no_path_given
+from . import util
 
 def add_rm_parser(subparsers):
     parser = subparsers.add_parser('rm', help="list files in data or output storage")
@@ -10,28 +7,28 @@ def add_rm_parser(subparsers):
 
 def run_rm(args):
     for uri in args.files:
-        storage, bucket, path = parse_uri(uri)
-        minio_client = get_minio_client(storage)
+        storage, bucket, path = util.parse_uri(util.expand_uri(uri))
         if not bucket:
-            handle_no_path_given()
+            util.handle_no_path_given()
         elif not path:
-            if minio_client.bucket_exists(bucket):
-                objects = minio_client.list_objects_v2(bucket, '', recursive=True)
-                for obj in objects:
-                    delete(storage, bucket, obj.object_name)
-                delete(storage, bucket)
+            delete_bucket(storage, bucket)
+        else:
+            exact_match = util.get_exact_object(storage, bucket, path)
+            if exact_match.is_dir:
+                delete_dir(storage, bucket, exact_match.object_name)
             else:
-                handle_path_does_not_exists()
-        else:
-            delete(storage, bucket, path)
+                delete_file(storage, bucket, path)
 
-def delete(storage, bucket, path=None):
-    minio_client = get_minio_client(storage)
-    print("Deleting {}".format(build_uri(storage, bucket, path)))
-    try:
-        if path:
-            minio_client.remove_object(bucket, path)
-        else:
-            minio_client.remove_bucket(bucket)
-    except NoSuchBucket:
-        handle_path_does_not_exists()    
+def delete_bucket(storage, bucket):
+    delete_dir(storage, bucket, '')
+    print("Deleting {}".format(util.build_uri(storage, bucket)))
+    util.get_minio_client(storage).remove_bucket(bucket)
+
+def delete_dir(storage, bucket, path):
+    objects = util.get_dir_objects(storage, bucket, path, recursive=True)
+    for obj in objects:
+        delete_file(storage, bucket, obj.object_name)
+
+def delete_file(storage, bucket, path):
+    print("Deleting {}".format(util.build_uri(storage, bucket, path)))
+    util.get_minio_client(storage).remove_object(bucket, path)

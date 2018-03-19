@@ -156,7 +156,7 @@ def check_api_config(api_url, api_key, timeout=180):
     while True:
         try:
             cluster_config = client.login_user()
-            print('Success! Cluster ID: %s' % cluster_config.cluster_id)
+            print('Success!')
             config.api_key['api_key'] = old_api_key
             config.host = old_api_host
             return cluster_config
