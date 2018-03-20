@@ -34,18 +34,28 @@ def run_cp(args):
 
 def copy(source, dest_uri):
     print("Copying {} to {}".format(source.uri, dest_uri))
-    if util.is_local(source.uri):
-        stream_creator = lambda: open(source.uri, 'rb')
-    else:
-        stream_creator = lambda: get_download_stream(source.uri)
+    prepare_destination(dest_uri)
     with tqdm(total=source.size, unit='byte', unit_scale=True) as pbar:
-        with stream_creator() as input_stream:
-            if util.is_local(dest_uri):
-                store_stream_locally(dest_uri, input_stream, pbar)
-            else:
-                wrapped_stream = StreamWrapper(input_stream, lambda size: pbar.update(size))
-                store_stream_remotely(dest_uri, input_stream, source.size, pbar)
+        with get_stream_creator(source)() as input_stream:
+            store_stream(dest_uri, input_stream, source.size, pbar.update)
 
+def prepare_destination(dest_uri):
+    if util.is_local(dest_uri):
+        prepare_destination_locally(dest_uri)
+    else:
+        prepare_destination_remotely(dest_uri)
+
+def get_stream_creator(source):
+    if util.is_local(source.uri):
+        return lambda: open(source.uri, 'rb')
+    else:
+        return lambda: get_download_stream(source.uri)
+
+def store_stream(dest_uri, stream, stream_size, progress):
+    if util.is_local(dest_uri):
+        store_stream_locally(dest_uri, stream, progress)
+    else:
+        store_stream_remotely(dest_uri, stream, stream_size, progress)
 
 class FileToCopy(object):
     def __init__(self, uri, relpath, size):
@@ -63,38 +73,28 @@ def gather_local_files(path):
     else:
         yield FileToCopy(path, os.path.basename(path), os.stat(path).st_size)
 
-def store_stream_locally(path, stream, progress_bar):
+
+def prepare_destination_locally(path):
     dirname = os.path.dirname(path)
     if dirname:
         mkdir_p(dirname)
+
+def store_stream_locally(path, stream, progress):
     with open(path, 'wb') as file_data:
         while True:
             buffer = stream.read(1024 * 1024)
             if len(buffer) == 0:
                 break
             file_data.write(buffer)
-            progress_bar.update(len(buffer))
-
-
-class StreamWrapper(object):
-    def __init__(self, wrapped_stream, callback):
-        self.wrapped_stream = wrapped_stream
-        self.callback = callback
-
-    def read(self, size=-1):
-        data = self.wrapped_stream.read(size)
-        self.callback(size)
-        return data
-
+            progress(len(buffer))
 
 def gather_remote_files(uri):
     uri = util.expand_uri(uri)
     storage, bucket, path = util.parse_uri(uri)
-    minio_client = util.get_minio_client(storage)
     if not bucket:
-        buckets = minio_client.list_buckets()
+        buckets = util.get_buckets(storage)
         for bucket in buckets:
-            yield from gather_remote_dir(storage, bucket, base_uri=uri)
+            yield from gather_remote_dir(storage, bucket.name, base_uri=uri)
     elif not path:
         yield from gather_remote_dir(storage, bucket, base_uri=uri)
     else:
@@ -124,14 +124,17 @@ def get_download_stream(uri):
     minio_client = util.get_minio_client(storage)
     return minio_client.get_object(bucket, path)
 
-def store_stream_remotely(uri, stream, size, progress_bar):
-    storage, bucket, path = util.parse_uri(uri)
+def prepare_destination_remotely(uri):
+    _, _, path = util.parse_uri(uri)
     if not path:
-        handle_error("You need to specify at least one folder!")
+        handle_error("You need to specify at least one root folder!")
+
+def store_stream_remotely(uri, stream, size, progress):
+    storage, bucket, path = util.parse_uri(uri)
     minio_client = util.get_minio_client(storage)
     create_bucket_if_not_exists(minio_client, bucket)
     minio_client.put_object(bucket, path, stream, size,
-                            progress=lambda size: progress_bar.update(size))
+                            progress=progress)
 
 def create_bucket_if_not_exists(minio_client, bucket, cache=set()):
     if not bucket in cache:
