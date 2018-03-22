@@ -1,3 +1,9 @@
+# v1.2.0 (2018/03/22)
+This new release brings the following data management commands:
+- `riseml ls`
+- `riseml cp`
+- `riseml rm`
+
 # v1.1.0 (2018/02/21)
 - Add support for Horovod
 

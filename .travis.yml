@@ -69,6 +69,17 @@ deploy:
   bucket: cdn.riseml.com
   region: us-west-2
   local-dir: dist/$TRAVIS_OS_NAME
+  upload-dir: releases/latest/$TRAVIS_OS_NAME
+  on:
+    tags: true
+- provider: s3
+  skip_cleanup: true
+  access_key_id: AKIAJD34GLT7JZCXW2QA
+  secret_access_key:
+    secure: HJo0b598z2HD6r0YsoYxVHLao7tYHf6cK6is4fiD1tooxn0Xv5nDDiQeLOqL3NuwgNuenTkYtCwkzKrw8vUxukM6fqErrmol7unRCctA/+P6ha9aBu8or+gZhwar0K1ybZWpNzfToC/hL4Mkzh1eefXk5srMizRyTMDMKb9zHXhSSNmrIBzcgKR7Mc/uo5En3Y+OWfV5+8bd8IchpQmUbuBWtUzGdS5c0krc2rXyxMY3P9JEG+nZndFUZYMPGKkQDLWEYxhE3G9e+RPqzokDDhrmOModZVScLyNVgsJADloX3SEzOQQ1UQHjTdFYqxZ6RWVgJwkxEXNvrkiIUrFkfretgRnMM0J54k7LPTy2b/8ARqWBIShPdX62NR49fpyWWi/ziSuJnQrzc8yLy11R0Su5DVNbFg+IcLMJqXmpxd060pBOiyMNIboReTPPGdrz0eGxu/ws4Y7/G8wRQDsCUTGrng+YNma104VmRJiItsELXtqWGYlrolKpRWgW4mntYVJu93kcloHfb8h/aY1VwfRP5G7pSVvhbceOujM4Ur7lcq+cpdGhjRlsSaZZCtW2tiBuOg34+BHSouO3D7Jh+kQPUATIRXzUeETiI4RTP39Kac+ux0u/CRwYL/GSU+h8W07ks5mOh1oXvwTotmAQDfEj9o3KecH5MOQxaVd4pf8=
+  bucket: cdn.riseml.com
+  region: us-west-2
+  local-dir: dist/$TRAVIS_OS_NAME
   upload-dir: staging/$TRAVIS_OS_NAME
   on:
     branch: master
