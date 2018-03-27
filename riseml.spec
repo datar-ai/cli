@@ -12,7 +12,6 @@ def get_os():
     'darwin': 'macos'
   }.get(val, val)
 
-raise Exception(get_os())
 
 cfg_parser_loc = os.path.dirname(sys.modules['config_parser'].__file__)
 
@@ -20,7 +19,7 @@ a = Analysis(['riseml/__main__.py'],
              pathex=[],
              binaries=[('rsync/rsync', 'bin')],
              datas=[(os.path.join(cfg_parser_loc, 'schemas/*'), 'config_parser/schemas')],
-             hiddenimports=['_sysconfigdata_m_darwin_darwin'] if get_os() == 'darwin' else [],
+             hiddenimports=['_sysconfigdata_m_darwin_darwin'] if get_os() == 'macos' else [],
              hookspath=[],
              runtime_hooks=[],
              excludes=['win32com'],
