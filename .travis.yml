@@ -50,7 +50,7 @@ script:
 - cp dist/$TRAVIS_OS_NAME/riseml dist/riseml_$TRAVIS_OS_NAME
 
 # Try to execute the binary...
-- dist/$TRAVIS_OS_NAME/riseml -v
+- ./dist/$TRAVIS_OS_NAME/riseml -v
 
 deploy:
 - provider: s3
