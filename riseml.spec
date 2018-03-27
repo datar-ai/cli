@@ -12,6 +12,7 @@ def get_os():
     'darwin': 'macos'
   }.get(val, val)
 
+raise get_os()
 
 cfg_parser_loc = os.path.dirname(sys.modules['config_parser'].__file__)
 
