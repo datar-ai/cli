@@ -46,7 +46,10 @@ script:
 - cd -
 
 # build binary
-- pyinstaller --clean riseml.spec --distpath dist/$TRAVIS_OS_NAME
+- if ["$TRAVIS_OS_NAME" == "osx"]; then
+    HIDDEN_IMPORTS="--hidden-import=_sysconfigdata_m_darwin_darwin";
+  fi
+- pyinstaller --clean riseml.spec --distpath dist/$TRAVIS_OS_NAME $HIDDEN_IMPORTS
 - cp dist/$TRAVIS_OS_NAME/riseml dist/riseml_$TRAVIS_OS_NAME
 
 # Try to execute the binary...
