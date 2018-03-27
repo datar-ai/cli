@@ -46,7 +46,7 @@ script:
 - cd -
 
 # build binary
-- if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
     HIDDEN_IMPORTS="--hidden-import _sysconfigdata_m_darwin_darwin";
   fi
 - echo $HIDDEN_IMPORTS

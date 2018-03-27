@@ -12,7 +12,7 @@ def get_os():
     'darwin': 'macos'
   }.get(val, val)
 
-raise StandardError(get_os())
+raise Exception(get_os())
 
 cfg_parser_loc = os.path.dirname(sys.modules['config_parser'].__file__)
 
