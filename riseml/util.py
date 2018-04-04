@@ -120,16 +120,46 @@ def get_since_str(timestamp):
     hours, since_ms = divmod(since_ms, 60 * 60 * 1000)
     minutes, since_ms = divmod(since_ms, 60 * 1000)
     seconds, since_ms = divmod(since_ms, 1000)
+    def plural(count):
+        if count > 1:
+            return 's'
+        else:
+            return ''
     if days > 0:
-        return "%s day(s)" % days
+        return "%s day%s" % (days, plural(days))
     elif hours > 0:
-        return "%s hour(s)" % hours
+        return "%s hour%s" % (hours, plural(hours))
     elif minutes > 0:
-        return "%s minute(s)" % minutes
+        return "%s minute%s" % (minutes, plural(minutes))
     elif seconds > 0:
-        return "%s second(s)" % seconds
+        return "%s second%s" % (seconds, plural(seconds))
     else:
         return "just now"
+
+
+def str_duration(started, ended=None, is_millis=False):
+    if started is None:
+        return '-'
+    elif is_millis:
+        started = started / 1000
+    if ended is None:
+        ended = time.time()
+    elif is_millis:
+        ended = ended / 1000
+    seconds = ended - started
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    def plural(count):
+        if count > 1:
+            return 's'
+        else:
+            return ''
+    if hours > 0:
+        return "%dh %dm %ds" % (hours, minutes, seconds)
+    elif minutes > 0:
+        return "%dm %ds" % (minutes, seconds)
+    else:
+        return "%d second%s" % (seconds, plural(seconds))
 
 
 def str_timestamp(timestamp):

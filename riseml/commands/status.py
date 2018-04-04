@@ -90,18 +90,21 @@ def show_dict(dictionary, indentation=2, title=None):
         elif value is not None:
             print("{}{}: {}".format(whitespaces, attribute, value))
 
+
 def show_common_header(entity, type):
     print("ID: {}".format(entity.short_id))
     print("Type: {}".format(type))
     print("State: {}{}".format(util.get_state_symbol(entity.state),
                                entity.state))
+    show_timing(entity.started_at, entity.finished_at)
+
 
 def show_job_table(jobs):
     rows = [
         ([job.short_id,
          '%s%s' % (util.get_state_symbol(job.state), job.state),
          util.get_since_str(job.started_at),
-         util.get_since_str(job.finished_at),
+         util.str_duration(job.started_at, job.finished_at, is_millis=True),
          job.reason or '',
          job.message[:17] + '...' if job.message and len(job.message) > 20 else job.message or '',
          job.exit_code if job.exit_code is not None else '',
@@ -109,10 +112,20 @@ def show_job_table(jobs):
     ]
 
     util.print_table(
-        header=['JOB ID', 'STATE', 'STARTED', 'FINISHED', 'REASON', 'MESSAGE', 'EXIT CODE', 'GPU', 'CPU', 'MEM'],
-        min_widths=[13, 13, 13, 13, 13, 20, 10, 6, 6, 6],
+        header=['JOB ID', 'STATE', 'STARTED', 'DURATION', 'REASON', 'MESSAGE', 'EXIT CODE', 'GPU', 'CPU', 'MEM'],
+        min_widths=[13, 11, 8, 9, 13, 20, 10, 6, 6, 6],
         rows=rows
     )
+
+
+def show_timing(started_at, finished_at):
+    if started_at:
+        print("Started:  {}".format(util.str_timestamp(started_at / 1000)))
+        if finished_at is not None:
+            print("Finished: {}".format(util.str_timestamp(finished_at / 1000)))
+        print("Duration: {}".format(util.str_duration(started_at,
+                                                    finished_at, is_millis=True)))
+
 
 def show_experiment(experiment):
     show_common_header(experiment, "Experiment")
@@ -136,10 +149,9 @@ def show_experiment(experiment):
 
     show_job_table(experiment.jobs)
 
+
 def show_job(job):
     show_common_header(job, "Job")
-    print("Started: {} ago".format(util.get_since_str(job.started_at)))
-    print("Finished: {} ago".format(util.get_since_str(job.finished_at)))
     if job.reason is not None:
         print("Reason: {}".format(job.reason))
     if job.message is not None:
@@ -156,8 +168,10 @@ def show_job(job):
     if job.state == 'FAILED':
         print("Reason: {}".format(job.reason))
 
+
 def get_experiments_rows(group, with_project=True, with_type=True, with_params=True,
-                         with_user=False, indent=True, with_result=True):
+                         with_user=False, indent=True, with_result=True, use_started_at=False,
+                         with_duration=False):
     rows = []
 
     for i, experiment in enumerate(group.children):
@@ -170,8 +184,16 @@ def get_experiments_rows(group, with_project=True, with_type=True, with_params=T
         if with_project:
             values += [group.project.name]
 
-        values += [u'%s%s' % (util.get_state_symbol(experiment.state), experiment.state),
-                   util.get_since_str(experiment.created_at)]
+        values += [u'%s%s' % (util.get_state_symbol(experiment.state), experiment.state)]
+
+        if use_started_at:
+            values += [util.get_since_str(experiment.started_at)]
+        else:
+            values += [util.get_since_str(experiment.created_at)]
+
+        if with_duration:
+            values += [util.str_duration(experiment.started_at, experiment.finished_at,
+                                         is_millis=True)]
 
         if with_type:
             values += [indent_str + 'Experiment']
@@ -184,12 +206,9 @@ def get_experiments_rows(group, with_project=True, with_type=True, with_params=T
 
     return rows
 
+
 def show_experiment_group(group):
-    print("ID: {}".format(group.short_id))
-    print("Type: Set")
-    print("State: {}{}".format(util.get_state_symbol(group.state),
-                               group.state))
-    print("Project: {}".format(group.project.name))
+    show_common_header(group, 'Set')
 
     if group.framework == 'tensorflow' and group.framework_config.get('tensorboard', False):
         tensorboard_job = next(job for job in group.jobs if job.role == 'tensorboard')
@@ -200,9 +219,10 @@ def show_experiment_group(group):
 
     print()
     util.print_table(
-        header=['EXP ID', 'STATE', 'AGE', 'PARAMS', 'RESULT'],
-        min_widths=(6, 9, 13, 14, 14),
-        rows=get_experiments_rows(group, with_project=False, with_type=False, indent=False)
+        header=['EXP ID', 'STATE', 'STARTED', 'DURATION', 'PARAMS', 'RESULT'],
+        min_widths=(6, 9, 11, 9, 14, 14),
+        rows=get_experiments_rows(group, with_project=False, with_type=False, indent=False,
+                                  use_started_at=True, with_duration=True)
     )
 
     if group.jobs:
@@ -221,10 +241,10 @@ def show_experiments(experiments, all=False, collapsed=True, users=False):
 
 def _get_status_headers(collapsed=False, users=False):
     header = ['ID', 'PROJECT', 'STATE', 'AGE', 'TYPE']
-    widths = (6, 14, 10, 13, 15)
+    widths = (6, 14, 10, 11, 15)
     if users:
         header = ['ID', 'USER', 'PROJECT', 'STATE', 'AGE', 'TYPE']
-        widths = (6, 6, 14, 10, 13, 15)
+        widths = (6, 6, 14, 10, 11, 15)
     if not collapsed:
         header += ['PARAMS' , 'RESULT']
         widths += (14, 14)
