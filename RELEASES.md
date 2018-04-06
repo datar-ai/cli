@@ -1,3 +1,6 @@
+# v1.2.2 (2018/04/06)
+Added duration to status command output for experiments
+
 # v1.2.1 (2018/03/26)
 This fixes the client on Mac OSX.
 

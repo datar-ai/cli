@@ -90,7 +90,7 @@ class Configuration(object):
         self.key_file = None
 
         # Version Info
-        self.packageVersion = "1.2.1"
+        self.packageVersion = "1.2.2"
 
     @property
     def logger_file(self):
@@ -228,5 +228,5 @@ class Configuration(object):
                "OS: {env}\n"\
                "Python Version: {pyversion}\n"\
                "Version of the API: 1.2.1\n"\
-               "SDK Package Version: 1.2.1".\
+               "SDK Package Version: 1.2.2".\
                format(env=sys.platform, pyversion=sys.version)
