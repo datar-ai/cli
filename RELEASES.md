@@ -1,5 +1,5 @@
-# v1.2.1 (2018/03/22)
-Added duration to status command output for experiments
+# v1.2.1 (2018/03/26)
+This fixes the client on Mac OSX.
 
 # v1.2.0 (2018/03/22)
 This new release brings the following data management commands:
