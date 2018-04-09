@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/riseml/cli.svg?branch=master)](https://travis-ci.org/riseml/cli)
-
 # RiseML Command Line Client
+
+[![Build Status](https://travis-ci.org/riseml/cli.svg?branch=master)](https://travis-ci.org/riseml/cli)
 
 This is the command-line client for RiseML, which allows you to run and manage experiments.
 
