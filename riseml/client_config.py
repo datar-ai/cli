@@ -36,9 +36,19 @@ users:
     api-key: ""
 """
 
+
 def get_config_file():
-    home = str(Path.home())
-    return os.path.join(home, CONFIG_PATH, CONFIG_FILE)
+    config_file = os.environ.get('RISEML_CONFIG', None)
+    if config_file is None:
+        home = str(Path.home())
+        config_file = os.path.join(home, CONFIG_PATH, CONFIG_FILE)
+    return config_file
+
+
+def config_file_exists():
+    if not os.path.isfile(get_config_file()):
+        return False
+    return True
 
 
 def read_config():
