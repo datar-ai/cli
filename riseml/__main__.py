@@ -8,7 +8,7 @@ import rollbar
 from urllib3.exceptions import HTTPError
 
 from riseml.commands import *
-from riseml.client_config import get_api_url, get_stream_url, get_sync_url, get_git_url, get_environment, get_cluster_id, get_rollbar_endpoint
+from riseml.client_config import get_api_url, get_stream_url, get_sync_url, get_git_url, get_environment, get_cluster_id, get_rollbar_endpoint, config_file_exists, get_config_file
 from riseml.consts import VERSION
 from riseml.errors import handle_error
 
@@ -54,6 +54,9 @@ def main():
         print('git_url: %s' % get_git_url())
 
     if hasattr(args, 'run'):
+        if not (config_file_exists() or args.run.__name__ == 'run_login'):
+            handle_error('Client configuration file %s not found'
+                          % get_config_file())
         try:
             args.run(args)
         except HTTPError as e:
@@ -63,7 +66,7 @@ def main():
             print('\nAborting...')
     else:
         parser.print_usage()
-    
+
 def safely_encoded_print(print_func):
     def convert_to_ascii(arg):
         if isinstance(arg, str):
